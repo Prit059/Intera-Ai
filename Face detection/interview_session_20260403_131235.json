@@ -1,0 +1,32 @@
+[
+  {
+    "timestamp": 1.046945,
+    "confidence": 52,
+    "engagement": 60,
+    "eye_ratio": 0.3214652882842101,
+    "mouth_ratio": 0.02189195498671361,
+    "head_pose": 1.0,
+    "blink_rate": 0.0,
+    "frame": 1
+  },
+  {
+    "timestamp": 11.101944,
+    "confidence": 55,
+    "engagement": 69,
+    "eye_ratio": 0.33293121508703016,
+    "mouth_ratio": 0.32632752773741663,
+    "head_pose": 1.0,
+    "blink_rate": 0.0,
+    "frame": 146
+  },
+  {
+    "timestamp": 21.156931,
+    "confidence": 55,
+    "engagement": 69,
+    "eye_ratio": 0.3385583805824467,
+    "mouth_ratio": 0.2991854034357033,
+    "head_pose": 1.0,
+    "blink_rate": 0.0,
+    "frame": 340
+  }
+]

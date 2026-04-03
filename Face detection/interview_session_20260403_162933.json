@@ -1,0 +1,82 @@
+[
+  {
+    "timestamp": 0.576681,
+    "confidence": 41,
+    "engagement": 60,
+    "eye_ratio": 0.17971399238467817,
+    "mouth_ratio": 0.21540159232497497,
+    "head_pose": 1.0,
+    "blink_rate": 1.0,
+    "frame": 2
+  },
+  {
+    "timestamp": 10.61685,
+    "confidence": 48,
+    "engagement": 69,
+    "eye_ratio": 0.2727332372729856,
+    "mouth_ratio": 0.3013710449746283,
+    "head_pose": 1.0,
+    "blink_rate": 0.5911330049261084,
+    "frame": 203
+  },
+  {
+    "timestamp": 20.653358,
+    "confidence": 49,
+    "engagement": 69,
+    "eye_ratio": 0.28887647753259127,
+    "mouth_ratio": 0.3448247409967918,
+    "head_pose": 1.0,
+    "blink_rate": 1.5976331360946745,
+    "frame": 338
+  },
+  {
+    "timestamp": 30.65704,
+    "confidence": 46,
+    "engagement": 69,
+    "eye_ratio": 0.26212610266483366,
+    "mouth_ratio": 0.1848021467680152,
+    "head_pose": 1.0,
+    "blink_rate": 1.5225563909774436,
+    "frame": 532
+  },
+  {
+    "timestamp": 40.932191,
+    "confidence": 46,
+    "engagement": 69,
+    "eye_ratio": 0.26502643283462557,
+    "mouth_ratio": 0.22592944865217865,
+    "head_pose": 1.0,
+    "blink_rate": 1.2150837988826815,
+    "frame": 716
+  },
+  {
+    "timestamp": 50.969697,
+    "confidence": 41,
+    "engagement": 69,
+    "eye_ratio": 0.2180818425722763,
+    "mouth_ratio": 0.21560593263113667,
+    "head_pose": 1.0,
+    "blink_rate": 1.380897583429229,
+    "frame": 869
+  },
+  {
+    "timestamp": 61.009534,
+    "confidence": 66,
+    "engagement": 67,
+    "eye_ratio": 0.5659737202767824,
+    "mouth_ratio": 0.24806944560569846,
+    "head_pose": 1.0,
+    "blink_rate": 1.415929203539823,
+    "frame": 1017
+  },
+  {
+    "timestamp": 71.074652,
+    "confidence": 39,
+    "engagement": 69,
+    "eye_ratio": 0.1785883901052123,
+    "mouth_ratio": 0.20548445894841372,
+    "head_pose": 1.0,
+    "blink_rate": 1.4859094790777114,
+    "frame": 1171
+  }
+]

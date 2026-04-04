@@ -224,7 +224,7 @@ const handleSubmit = async (e) => {
               </div>
 
               <a 
-                href='http://localhost:8000/auth/google'
+                href='https://intera-ai.onrender.com/auth/google'
                 className="flex items-center justify-center gap-3 w-full py-3.5 bg-white border-2 border-gray-200 text-gray-700 font-semibold rounded-xl hover:bg-gray-50 hover:border-orange-500/30 transition-all"
               >
                 <svg className="w-5 h-5" viewBox="0 0 24 24">

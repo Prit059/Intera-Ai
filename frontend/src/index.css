@@ -1,0 +1,370 @@
+@import url('https://fonts.googleapis.com/css2?family=Big+Shoulders+Stencil:opsz,wght@10..72,100..900&family=Share+Tech&family=Urbanist:ital,wght@0,100..900;1,100..900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Big+Shoulders+Stencil:opsz,wght@10..72,100..900&family=Share+Tech&family=Urbanist:ital,wght@0,100..900;1,100..900&display=swap');
+@import "tailwindcss";
+/* @import "tw-animate-css"; */
+
+@custom-variant dark (&:is(.dark *));
+
+:root {
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.145 0 0);
+  --primary: oklch(0.646 0.222 41.116);
+  --primary-foreground: oklch(0.98 0.016 73.684);
+}
+
+@theme inline {
+  --font-sans: 'Inter Variable', sans-serif;
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+}
+
+@theme {
+  --font-display: "Urbanist", sans-serif;
+  --breakpoint-3xl: 1920px;
+  --color-primary: #FF9324;
+}
+
+@layer base{
+  html{
+   font-family: var(--font-display); 
+  }
+
+  body{
+    background-color: #fcfbfc;
+    overflow-x: hidden;
+  }
+}
+
+/* Custom scrollbar styling */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 4px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(100,100,100,0.5);
+  border-radius: 10px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* Scrollbar styling for leaderboard and other scrollable content */
+.scrollbar-thin::-webkit-scrollbar {
+  width: 6px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  background: rgba(107, 114, 128, 0.7);
+  border-radius: 3px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb:hover {
+  background: rgba(107, 114, 128, 0.9);
+}
+
+.scrollbar-thin::-webkit-scrollbar-track {
+  background: rgba(31, 41, 55, 0.5);
+  border-radius: 3px;
+}
+
+@layer utilities{
+  /* Animate text with a shine effect */
+  @keyframes text-shine {
+    0%{
+      background-position: 0% 50%;
+    }
+    100%{
+      background-position: 100% 50%;
+    }
+  }
+
+  .animate-text-shine {
+    animation: text-shine 2s ease-in-out infinite alternate;
+  }
+
+  @keyframes blob1 {
+    0%, 100% {transform: translate(0px, 0px) scale(1);}
+    33% {transform: translate(30px, -60px) scale(1.1);}
+    66% {transform: translate(-20px, 20px) scale(0.9);}
+  }
+
+  @keyframes blob2 {
+    0%, 100% {transform: translate(0px, 0px) scale(1);}
+    33% {transform: translate(-40px, 60px) scale(1.05);}
+    66% {transform: translate(20px, -40px) scale(0.95);}
+  }
+
+  @keyframes blob3 {
+    0%, 100% {transform: translate(0px, 0px) scale(1);}
+    33% {transform: translate(20px, 140px) scale(1.15);}
+    66% {transform: translate(-30px, -30px) scale(0.85);}
+  }
+
+  .animate-blob1 {
+    animation: blob1 8s ease-in-out infinite;
+  }
+
+  .animate-blob2 {
+    animation: blob2 10s ease-in-out infinite;
+  }
+
+  .animate-blob3 {
+    animation: blob3 12s ease-in-out infinite;
+  }
+}
+
+.input-box{
+  @apply w-full flex justify-between gap-3 text-sm text-black bg-gray-50/50 rounded px-4 py-3 mb-4 mt-3 border border-gray-100 outline-none focus-within:border-orange-300;
+}
+
+.btn-primary{
+  @apply w-full flex items-center justify-center gap-3 text-sm font-medium text-white bg-black shadow-lg shadow-orange-600/5 p-[10px] rounded-md my-1 hover:bg-orange-600/15 hover:text-black cursor-pointer;
+}
+
+.btn-small{
+  @apply flex items-center justify-center gap-3 bg-linear-to-r from-[#FF9324] to-[#e99a4b] text-sm font-semibold text-white px-7 py-2 rounded-lg hover:bg-black hover:text-white transition-colors cursor-pointer hover:shadow-2xl hover:shadow-orange-600/5;
+}
+.slide {
+  height: 3rem; /* Equal to text height */
+  overflow: hidden;
+  display: inline-block;
+  transition: all cubic-bezier(0.71, 0.03, 0.34, 1);
+}
+
+.wrapper {
+  display: flex;
+  flex-direction: column;
+   animation: wordSlider 21s infinite cubic-bezier(0.9, 0.01, 0.3, 0.99);
+}
+
+.wrapper span {
+  height: 3rem; /* Match .slide height */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Adjust % based on 6 words */
+@keyframes slideWords {
+  0% { transform: translateY(0%); }
+  12% { transform: translateY(-12%); }
+  28.5% { transform: translateY(-28.5%); }
+  36% { transform: translateY(-36%); }
+  56% { transform: translateY(-56%); }
+  69.5% { transform: translateY(-69.5%); }
+  84.5% { transform: translateY(-84.5%); }
+  100% { transform: translateY(0%); }
+}
+
+.animate-slide-words {
+  animation: slideWords 12s infinite ease-in-out;
+}
+
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-20px); }
+}
+@keyframes float-delayed {
+  0%, 100% { transform: translateY(0); }
+  25% { transform: translateY(-10px); }
+  75% { transform: translateY(10px); }
+}
+
+.animate-float {
+  animation: float 4s ease-out infinite;
+}
+.animate-float-delayed {
+  animation: float-delayed 4s ease-in infinite;
+}
+
+.animated-border {
+  position: relative;
+  border-radius: 1.3rem;
+  overflow: hidden;
+  padding: 1px;
+  background: linear-gradient(270deg, #ffa200, #2600ff);
+  background-size: 400% 400%;
+  animation: borderMove 6s ease infinite;
+}
+
+@keyframes borderMove {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+.animated-border-inner {
+  background: inherit;
+  border-radius: 0.95rem;
+  padding: 1.5rem;
+  background: var(--card-bg, #fff);
+  color: var(--card-text, #000);
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+.grid-bg {
+  background-image: 
+    linear-gradient(rgba(255,255,255,0.04) 2px, transparent 2px),
+    linear-gradient(90deg, rgba(255,255,255,0.04) 2px, transparent 2px);
+  background-size: 36px 36px;
+}
+
+.shiny-btn {
+  position: relative;
+  overflow: hidden;
+  /* background: linear-gradient(90deg, #ffb347 0%, #ffcc33 100%); */
+  color: #18181b;
+  border: none;
+  border-radius: 0.5rem;
+  padding: 0.85rem 2.5rem;
+  font-size: 1.5rem;
+  font-weight: bold;
+  cursor: pointer;
+  transition: box-shadow 0.2s, transform 0.2s;
+  box-shadow: 1px 3px 36px 0 rgba(125, 56, 14, 0.69);
+}
+
+.shiny-btn::before {
+  content: "";
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: linear-gradient(120deg, rgba(255,255,255,0.4) 0%, rgba(255,255,255,0.1) 60%, transparent 100%);
+  transform: rotate(25deg);
+  transition: opacity 0.3s;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.shiny-btn:hover, .shiny-btn:focus {
+  box-shadow: 1px 3px 12px 0px rgba(255, 196, 0, 0.648);
+  transform: translateY(-2px) scale(1.03);
+}
+
+.shiny-btn:hover::before, .shiny-btn:focus::before {
+  opacity: 1;
+  animation: shine 0.8s linear;
+}
+
+@keyframes shine {
+  0% { left: -50%; }
+  100% { left: 100%; }
+}
+
+/* Add to your global CSS */
+@keyframes progress {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+@keyframes shimmer {
+  0% { background-position: -468px 0; }
+  100% { background-position: 468px 0; }
+}
+
+.animate-progress {
+  animation: progress 2s ease-in-out infinite;
+}
+
+.shimmer {
+  background: linear-gradient(to right, #374151 4%, #4B5563 25%, #374151 36%);
+  background-size: 1000px 100%;
+  animation: shimmer 2s infinite linear;
+}
+
+/* Pulse with different colors */
+.pulse-multi {
+  animation: pulse-multi 2s infinite;
+}
+
+@keyframes pulse-multi {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+/* Bounce with stagger */
+.bounce-stagger > div {
+  animation: bounce 1s infinite;
+}
+
+.bounce-stagger > div:nth-child(2) { animation-delay: 0.1s; }
+.bounce-stagger > div:nth-child(3) { animation-delay: 0.2s; }
+
+/* Add to your index.css or App.css */
+@keyframes loadingPulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+.loader-text {
+  animation: loadingPulse 2s ease-in-out infinite;
+}
+
+/* Smooth page transitions */
+.page-transition-enter {
+  opacity: 0;
+  transform: translateY(20px);
+}
+
+.page-transition-enter-active {
+  opacity: 1;
+  transform: translateY(0);
+  transition: opacity 500ms, transform 500ms;
+}
+
+.page-transition-exit {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.page-transition-exit-active {
+  opacity: 0;
+  transform: translateY(-20px);
+  transition: opacity 500ms, transform 500ms;
+}
+
+/* Smooth scrolling for the entire page */
+html {
+  scroll-behavior: smooth;
+  scroll-padding-top: 80px; /* Accounts for fixed navbar */
+}
+
+/* For Webkit browsers (Chrome, Safari) - Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #1a1a1a;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #f97316;
+  border-radius: 4px;
+  transition: background 0.3s ease;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #fb923c;
+}
+
+/* For Firefox */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #f97316 #1a1a1a;
+}
+
+/* Prevent content shift on scrollbar appearance */
+html {
+  overflow-y: scroll;
+}

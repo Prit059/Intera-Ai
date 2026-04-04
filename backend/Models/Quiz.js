@@ -1,4 +1,3 @@
-// models/Quiz.js
 const mongoose = require('mongoose');
 
 const quizSchema = new mongoose.Schema({
@@ -10,9 +9,9 @@ const quizSchema = new mongoose.Schema({
   branch: {
     type: String,
     required: true,
-    enum: ['cse', 'ec', 'mechanical', 'ai_ml', 'other']
+    enum: ['cse', 'ec', 'mechanical', 'ai_ml', 'other', 'placement', 'competitive']
   },
-  customBranch: String, // if branch is 'other'
+  customBranch: String,
   mainTopic: {
     type: String,
     required: true
@@ -24,7 +23,7 @@ const quizSchema = new mongoose.Schema({
       enum: ['easy', 'medium', 'hard'],
       default: 'medium'
     },
-    weightage: Number // percentage of questions from this subtopic
+    weightage: Number
   }],
   totalQuestions: {
     type: Number,
@@ -40,7 +39,7 @@ const quizSchema = new mongoose.Schema({
     subtopic: String,
     difficulty: String
   }],
-  timeLimit: Number, // in minutes
+  timeLimit: Number,
   status: {
     type: String,
     enum: ['created', 'in-progress', 'completed'],
@@ -50,10 +49,16 @@ const quizSchema = new mongoose.Schema({
     questionIndex: Number,
     selectedAnswer: String,
     isCorrect: Boolean,
-    timeSpent: Number // seconds
+    timeSpent: Number
   }],
-  score: Number,
-  violations: Number,
+  score: {
+    type: Number,
+    default: 0
+  },
+  violations: {
+    type: Number,
+    default: 0
+  },
   completedAt: Date,
   performanceAnalysis: {
     weakTopics: [String],

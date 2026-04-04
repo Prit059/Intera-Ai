@@ -2,24 +2,34 @@ const axios = require("axios");
 const mongoose = require('mongoose');
 const Quiz = require('../Models/Quiz');
 
-// Groq API configuration
 const GROQ_API_KEY = process.env.GROQ_API_KEY;
 const GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions";
 const GROQ_MODEL = "llama-3.3-70b-versatile";
+
+// Enhanced branch mappings for placement and competitive exams
+const BRANCH_CONFIGS = {
+  cse: { name: "Computer Science", icon: "💻" },
+  ec: { name: "Electronics & Communication", icon: "📡" },
+  mechanical: { name: "Mechanical Engineering", icon: "⚙️" },
+  ai_ml: { name: "AI & Machine Learning", icon: "🤖" },
+  other: { name: "Other Field", icon: "📚" },
+  placement: { name: "Placement Preparation", icon: "🎯" },
+  competitive: { name: "Competitive Exams", icon: "🏆" }
+};
 
 const generateQuiz = async (req, res) => {
   try {
     const { branch, customBranch, mainTopic, subTopics, totalQuestions } = req.body;
     const userId = req.user.id;
 
-    console.log("🎯 Generating quiz with Groq:", { branch, mainTopic, totalQuestions });
+    console.log("🎯 Generating quiz:", { branch, mainTopic, totalQuestions });
 
     if (!branch || !mainTopic || !subTopics || !totalQuestions) {
       return res.status(400).json({ message: "Missing required fields." });
     }
 
     const timeLimit = calculateTimeLimit(totalQuestions, subTopics);
-    const questions = await generateAIContent(mainTopic, subTopics, totalQuestions);
+    const questions = await generateAIContent(mainTopic, subTopics, totalQuestions, branch);
 
     const quiz = new Quiz({
       user: userId,
@@ -50,20 +60,20 @@ const generateQuiz = async (req, res) => {
 };
 
 const calculateTimeLimit = (totalQuestions, subTopics) => {
-  let baseTime = totalQuestions * 1.5;
+  let baseTime = totalQuestions * 1.2;
   
   const difficultyWeights = {
     'easy': 1,
-    'medium': 1.5,
-    'hard': 2
+    'medium': 1.3,
+    'hard': 1.6
   };
 
   let weightedTime = 0;
   subTopics.forEach(st => {
-    weightedTime += (st.weightage / 100) * difficultyWeights[st.difficulty];
+    weightedTime += (st.weightage / 100) * (difficultyWeights[st.difficulty] || 1);
   });
 
-  return Math.round(baseTime * weightedTime);
+  return Math.max(Math.round(baseTime * weightedTime), totalQuestions);
 };
 
 const getOverallLevel = (subTopics) => {
@@ -73,35 +83,52 @@ const getOverallLevel = (subTopics) => {
   return 'easy';
 };
 
-const generateAIContent = async (mainTopic, subTopics, totalQuestions) => {
-  const prompt = `
-Generate a JSON array of exactly ${totalQuestions} multiple-choice questions on "${mainTopic}".
+const generateAIContent = async (mainTopic, subTopics, totalQuestions, branch) => {
+  const subtopicDistribution = subTopics.map(st => 
+    `${st.topic} (${st.difficulty} difficulty, ${st.weightage}% weightage)`
+  ).join('\n');
 
-SUBTOPIC DISTRIBUTION:
-${JSON.stringify(subTopics, null, 2)}
+  const branchContext = getBranchContext(branch);
 
-For EACH question, include these EXACT fields:
-- "question": string
-- "options": array of EXACTLY 4 strings
+  const prompt = `You are an expert quiz generator for ${branchContext}. Generate a high-quality, diverse set of ${totalQuestions} multiple-choice questions.
+
+TOPIC: "${mainTopic}"
+BRANCH/CONTEXT: ${branchContext}
+
+SUBTOPIC DISTRIBUTION (follow this exactly):
+${subtopicDistribution}
+
+REQUIREMENTS:
+1. Create questions that test different cognitive levels: recall, understanding, application, and analysis
+2. Vary question formats: definitions, scenarios, problem-solving, case studies, comparisons
+3. Ensure questions are appropriate for the specified difficulty levels
+4. Make options plausible but with only one clearly correct answer
+5. Provide educational explanations that teach the concept
+
+For EACH question, include EXACTLY these fields:
+- "question": string (clear, well-phrased)
+- "options": array of EXACTLY 4 strings (one correct, three plausible distractors)
 - "correctAnswer": string (must match one option exactly)
-- "explanation": string
-- "subtopic": string
-- "difficulty": "easy", "medium", or "hard"
+- "explanation": string (explain WHY this is correct and optionally why others are wrong)
+- "subtopic": string (must be one of: ${subTopics.map(s => s.topic).join(', ')})
+- "difficulty": "easy", "medium", or "hard" (match the specified weightage)
 
-Return ONLY valid JSON array, no other text.
+QUESTION DISTRIBUTION BY DIFFICULTY:
+${subTopics.map(st => `- ${st.topic}: ${st.weightage}% (${st.difficulty})`).join('\n')}
 
-EXAMPLE FORMAT:
+Return ONLY a valid JSON array. No additional text, no markdown formatting.
+
+Example format:
 [
   {
-    "question": "What is React?",
-    "options": ["A programming language", "A JavaScript library", "A database", "An operating system"],
-    "correctAnswer": "A JavaScript library",
-    "explanation": "React is a JavaScript library for building user interfaces.",
-    "subtopic": "React",
-    "difficulty": "easy"
+    "question": "What is the time complexity of binary search?",
+    "options": ["O(1)", "O(log n)", "O(n)", "O(n log n)"],
+    "correctAnswer": "O(log n)",
+    "explanation": "Binary search repeatedly divides the search interval in half, resulting in logarithmic time complexity.",
+    "subtopic": "Algorithms",
+    "difficulty": "medium"
   }
-]
-`;
+]`;
 
   try {
     console.log("📤 Sending prompt to Groq API");
@@ -113,30 +140,32 @@ EXAMPLE FORMAT:
         messages: [
           {
             role: "system",
-            content: "You are an expert quiz generator. Always respond with valid JSON only."
+            content: "You are an expert quiz generator for technical and competitive exams. Always respond with valid JSON only. Create challenging, accurate, and educational questions."
           },
           {
             role: "user",
             content: prompt
           }
         ],
-        temperature: 0.7,
-        max_tokens: 8000
+        temperature: 0.8,
+        max_tokens: 10000
       },
       {
         headers: {
           "Authorization": `Bearer ${GROQ_API_KEY}`,
           "Content-Type": "application/json"
         },
-        timeout: 30000
+        timeout: 45000
       }
     );
 
-    const rawText = response.data.choices[0].message.content;
-    console.log("📥 Groq response received");
+    let rawText = response.data.choices[0].message.content;
+    console.log("📥 Groq response received, length:", rawText.length);
 
+    // Clean the response
     let cleanedText = rawText
-      .replace(/^```json\s*|```$/g, "")
+      .replace(/^```json\s*|\s*```$/g, "")
+      .replace(/^```\s*|\s*```$/g, "")
       .trim();
     
     const jsonMatch = cleanedText.match(/\[[\s\S]*\]/);
@@ -144,17 +173,40 @@ EXAMPLE FORMAT:
       cleanedText = jsonMatch[0];
     }
 
-    const quizQuestions = JSON.parse(cleanedText);
+    let quizQuestions = JSON.parse(cleanedText);
     
     if (!Array.isArray(quizQuestions)) {
       throw new Error("Response is not an array");
     }
     
-    return quizQuestions.slice(0, totalQuestions);
+    // Validate and fix questions
+    quizQuestions = quizQuestions.slice(0, totalQuestions).map(q => ({
+      question: q.question || "Question not available",
+      options: Array.isArray(q.options) && q.options.length === 4 ? q.options : ["Option A", "Option B", "Option C", "Option D"],
+      correctAnswer: q.correctAnswer || (q.options ? q.options[0] : "Option A"),
+      explanation: q.explanation || "No explanation available.",
+      subtopic: q.subtopic || subTopics[0]?.topic || "General",
+      difficulty: q.difficulty || "medium"
+    }));
+    
+    return quizQuestions;
   } catch (error) {
     console.error("❌ Groq API Error:", error.message);
     return generateFallbackQuestions(mainTopic, subTopics, totalQuestions);
   }
+};
+
+const getBranchContext = (branch) => {
+  const contexts = {
+    cse: "Computer Science & Engineering. Focus on programming, algorithms, data structures, databases, networking, and software development.",
+    ec: "Electronics & Communication Engineering. Focus on digital/analog circuits, signals, communication systems, VLSI, and embedded systems.",
+    mechanical: "Mechanical Engineering. Focus on thermodynamics, fluid mechanics, solid mechanics, manufacturing, and machine design.",
+    ai_ml: "AI & Machine Learning. Focus on ML algorithms, deep learning, NLP, computer vision, and data science.",
+    placement: "Placement Preparation. Focus on aptitude, logical reasoning, verbal ability, data interpretation, and technical interview questions.",
+    competitive: "Competitive Exams. Focus on quantitative aptitude, reasoning, general awareness, and exam-specific patterns.",
+    other: "General knowledge and academic subjects."
+  };
+  return contexts[branch] || contexts.other;
 };
 
 const generateFallbackQuestions = (mainTopic, subTopics, totalQuestions) => {
@@ -166,15 +218,15 @@ const generateFallbackQuestions = (mainTopic, subTopics, totalQuestions) => {
     const difficulty = subTopics.find(st => st.topic === subtopic)?.difficulty || "medium";
     
     questions.push({
-      question: `What is the main concept of ${subtopic} in ${mainTopic}?`,
+      question: `What is a fundamental concept in ${subtopic} related to ${mainTopic}?`,
       options: [
-        `${subtopic} fundamental concept`,
-        `${subtopic} practical application`,
-        `${subtopic} theoretical approach`,
-        `${subtopic} advanced technique`
+        `Basic principle of ${subtopic}`,
+        `Advanced application of ${subtopic}`,
+        `Theoretical framework of ${subtopic}`,
+        `Practical implementation of ${subtopic}`
       ],
-      correctAnswer: `${subtopic} fundamental concept`,
-      explanation: `This is the correct answer because it represents the core concept of ${subtopic}.`,
+      correctAnswer: `Basic principle of ${subtopic}`,
+      explanation: `This is a fundamental concept in ${subtopic}. Understanding this principle is essential for mastering ${mainTopic}.`,
       subtopic: subtopic,
       difficulty: difficulty
     });
@@ -199,6 +251,7 @@ const submitQuiz = async (req, res) => {
       return res.status(403).json({ message: "Not authorized" });
     }
 
+    // Calculate score and detailed results
     let score = 0;
     const detailedResults = quiz.questions.map((q, index) => {
       const userAnswer = userAnswers[index]?.selectedAnswer || '';
@@ -217,10 +270,8 @@ const submitQuiz = async (req, res) => {
       };
     });
 
-    const weakTopics = [];
-    const strongTopics = [];
+    // Analyze weak and strong topics
     const subtopicStats = {};
-    
     detailedResults.forEach(r => {
       if (!subtopicStats[r.subtopic]) {
         subtopicStats[r.subtopic] = { correct: 0, total: 0 };
@@ -229,16 +280,19 @@ const submitQuiz = async (req, res) => {
       if (r.isCorrect) subtopicStats[r.subtopic].correct++;
     });
 
+    const weakTopics = [];
+    const strongTopics = [];
     Object.entries(subtopicStats).forEach(([topic, data]) => {
       const accuracy = (data.correct / data.total) * 100;
       if (accuracy < 60) weakTopics.push(topic);
       else if (accuracy > 80) strongTopics.push(topic);
     });
 
-    const totalTime = timeSpent.reduce((a, b) => a + b, 0);
-    const avgTime = detailedResults.length > 0 ? totalTime / detailedResults.length : 0;
+    const totalTimeSpent = timeSpent.reduce((a, b) => a + b, 0);
+    const avgTime = detailedResults.length > 0 ? totalTimeSpent / detailedResults.length : 0;
     const accuracy = (score / quiz.totalQuestions) * 100;
 
+    // Save results to database
     quiz.userAnswers = userAnswers.map((ans, idx) => ({
       questionIndex: idx,
       selectedAnswer: ans.selectedAnswer,
@@ -287,21 +341,41 @@ const generateRecommendations = (weakTopics, strongTopics, accuracy, branch) => 
   if (weakTopics.length > 0) {
     recommendations.push({
       type: 'weak_topic',
-      message: `Focus on improving: ${weakTopics.slice(0, 3).join(', ')}`,
+      message: `📚 Focus on improving: ${weakTopics.slice(0, 3).join(', ')}. Review these topics and practice more questions.`,
       priority: 'high'
     });
   }
 
-  if (accuracy < 60) {
+  if (accuracy < 50) {
     recommendations.push({
       type: 'overall_improvement',
-      message: 'Practice fundamental concepts to improve your score.',
+      message: '📖 Start with basic concepts and gradually move to advanced topics. Consider taking easier quizzes first.',
       priority: 'high'
     });
-  } else if (accuracy > 85) {
+  } else if (accuracy < 70) {
+    recommendations.push({
+      type: 'overall_improvement',
+      message: '👍 Good effort! Focus on your weak areas and practice regularly to improve.',
+      priority: 'medium'
+    });
+  } else if (accuracy >= 85) {
     recommendations.push({
       type: 'advanced_topics',
-      message: 'Great job! Try more challenging topics.',
+      message: '🌟 Excellent performance! Try more challenging topics or increase question difficulty.',
+      priority: 'low'
+    });
+  }
+
+  if (branch === 'placement') {
+    recommendations.push({
+      type: 'placement_tip',
+      message: '💼 For placements: Focus on speed and accuracy. Practice timed mock tests regularly.',
+      priority: 'medium'
+    });
+  } else if (branch === 'competitive') {
+    recommendations.push({
+      type: 'exam_tip',
+      message: '🏆 For competitive exams: Analyze previous year papers and focus on high-weightage topics.',
       priority: 'medium'
     });
   }
@@ -319,7 +393,7 @@ const getQuizHistory = async (req, res) => {
       status: 'completed' 
     })
       .sort({ completedAt: -1 })
-      .select('_id mainTopic branch score totalQuestions completedAt')
+      .select('_id mainTopic branch score totalQuestions completedAt subTopics')
       .lean();
     
     console.log(`✅ Found ${quizzes.length} completed quizzes`);
@@ -329,7 +403,7 @@ const getQuizHistory = async (req, res) => {
       quizId: quiz._id,
       topic: quiz.mainTopic,
       branch: quiz.branch,
-      level: 'medium',
+      level: getOverallLevel(quiz.subTopics),
       score: quiz.score || 0,
       totalQuestions: quiz.totalQuestions,
       completedAt: quiz.completedAt,
@@ -467,7 +541,7 @@ const getPerformanceAnalytics = async (req, res) => {
     const userId = req.user.id;
     console.log("📊 Generating analytics for user:", userId);
     
-    const quizzes = await Quiz.find({ user: userId, status: 'completed' });
+    const quizzes = await Quiz.find({ user: userId, status: 'completed' }).sort({ completedAt: -1 });
     
     if (quizzes.length === 0) {
       return res.json({
@@ -483,7 +557,7 @@ const getPerformanceAnalytics = async (req, res) => {
         progressData: [],
         recommendations: [{
           type: 'start',
-          message: 'Start taking quizzes to see your analytics!',
+          message: '🎯 Start taking quizzes to see your analytics and track your progress!',
           priority: 'low'
         }]
       });
@@ -498,11 +572,12 @@ const getPerformanceAnalytics = async (req, res) => {
     quizzes.forEach(quiz => {
       const topic = quiz.mainTopic;
       if (!topicPerformance[topic]) {
-        topicPerformance[topic] = { total: 0, correct: 0, attempts: 0 };
+        topicPerformance[topic] = { total: 0, correct: 0, attempts: 0, lastScore: 0 };
       }
       topicPerformance[topic].total += quiz.totalQuestions;
       topicPerformance[topic].correct += (quiz.score || 0);
       topicPerformance[topic].attempts += 1;
+      topicPerformance[topic].lastScore = (quiz.score / quiz.totalQuestions) * 100;
     });
 
     const weakAreas = Object.entries(topicPerformance)
@@ -514,10 +589,12 @@ const getPerformanceAnalytics = async (req, res) => {
       .map(([topic]) => topic);
 
     const progressData = quizzes.map((quiz, index) => ({
-      attempt: index + 1,
+      attempt: quizzes.length - index,
       date: quiz.completedAt,
       accuracy: quiz.totalQuestions > 0 ? (quiz.score / quiz.totalQuestions) * 100 : 0,
-      topic: quiz.mainTopic
+      topic: quiz.mainTopic,
+      score: quiz.score,
+      total: quiz.totalQuestions
     }));
 
     res.json({
@@ -546,22 +623,36 @@ const generateAnalyticsRecommendations = (weakAreas, strongAreas, overallAccurac
   if (weakAreas.length > 0) {
     recommendations.push({
       type: 'weak_areas',
-      message: `Focus on improving: ${weakAreas.slice(0, 3).join(', ')}`,
+      message: `📚 Focus on improving: ${weakAreas.slice(0, 3).join(', ')}. These topics need more practice.`,
       priority: 'high'
     });
   }
 
-  if (overallAccuracy < 60) {
+  if (overallAccuracy < 50) {
     recommendations.push({
       type: 'overall_improvement',
-      message: 'Your overall accuracy is low. Practice fundamental concepts first.',
+      message: '📖 Start with basic concepts and easier difficulty levels. Build your foundation first.',
       priority: 'high'
     });
-  } else if (overallAccuracy > 85) {
+  } else if (overallAccuracy < 70) {
+    recommendations.push({
+      type: 'overall_improvement',
+      message: '👍 You\'re on the right track! Focus on consistency and practice your weak areas.',
+      priority: 'medium'
+    });
+  } else if (overallAccuracy >= 85) {
     recommendations.push({
       type: 'advanced_topics',
-      message: 'Great performance! Try more challenging topics.',
-      priority: 'medium'
+      message: '🌟 Excellent performance! Challenge yourself with harder questions and new topics.',
+      priority: 'low'
+    });
+  }
+
+  if (strongAreas.length > 0 && weakAreas.length === 0) {
+    recommendations.push({
+      type: 'maintain_momentum',
+      message: '🎯 Great job! Keep maintaining this momentum and try exploring advanced concepts.',
+      priority: 'low'
     });
   }
 

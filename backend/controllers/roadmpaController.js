@@ -10,6 +10,7 @@ const GROQ_API_KEY = process.env.GROQ_API_KEY;
 const GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions";
 const GROQ_MODEL = "llama-3.3-70b-versatile";
 
+// ============ ROADMAP GENERATOR ============
 const roadmapgenerator = async (req, res) => {
   try {
     const { prompt } = req.body;
@@ -21,13 +22,12 @@ const roadmapgenerator = async (req, res) => {
       return res.status(401).json({ error: "User not authenticated" });
     }
 
-    // Try API first
     let response;
     try {
       response = await axios.post(
-        GROK_API_URL,
+        GROQ_API_URL,
         {
-          model: GROK_MODEL,
+          model: GROQ_MODEL,
           messages: [
             {
               role: "system",
@@ -56,68 +56,32 @@ Follow this EXACT JSON structure with COMPLETE data:
       "field": "Specific field name",
       "title": "Phase 1: Foundation",
       "estimatedTime": "X weeks/months",
-      "description": "DETAILED description of what this phase covers (100-200 words)",
+      "description": "DETAILED description",
       "skillsToLearn": ["Skill 1", "Skill 2", "Skill 3", "Skill 4", "Skill 5"],
-      "projects": [
-        "Project 1: Detailed project description",
-        "Project 2: Detailed project description"
-      ],
+      "projects": ["Project 1: Description", "Project 2: Description"],
       "steps": [
         {
           "stepTitle": "Step 1: [Specific topic]",
-          "description": "DETAILED step description with learning objectives",
+          "description": "DETAILED step description",
           "resources": {
-            "youtube": [
-              "https://youtube.com/playlist?list=... (actual FreeCodeCamp/Traversy Media/etc.)",
-              "https://youtube.com/watch?v=... (actual tutorial)"
-            ],
-            "coursera": [
-              "https://coursera.org/learn/... (actual course)",
-              "https://coursera.org/specializations/... (actual specialization)"
-            ],
-            "officialDocs": [
-              "https://developer.mozilla.org/...",
-              "https://react.dev/learn",
-              "https://nodejs.org/en/docs/guides/"
-            ],
-            "books": [
-              "Book Title by Author (Publisher, Year)",
-              "Another Book Title by Author"
-            ],
-            "practicePlatforms": [
-              "https://leetcode.com",
-              "https://codewars.com",
-              "https://hackerrank.com",
-              "https://frontendmentor.io"
-            ]
+            "youtube": ["https://youtube.com/..."],
+            "coursera": ["https://coursera.org/..."],
+            "officialDocs": ["https://developer.mozilla.org/..."],
+            "books": ["Book Title by Author"],
+            "practicePlatforms": ["https://leetcode.com"]
           },
-          "tools": ["Tool 1", "Tool 2", "Tool 3"],
-          "jobReadySkills": ["Skill A", "Skill B", "Skill C"]
+          "tools": ["Tool 1", "Tool 2"],
+          "jobReadySkills": ["Skill A", "Skill B"]
         }
       ]
     }
   ],
-  "companies": [
-    "Company 1: What they look for",
-    "Company 2: What they look for",
-    "Company 3: What they look for"
-  ],
-  "flowchart": [
-    "Month 1-2: Learn Fundamentals →",
-    "Month 3-4: Build Projects →", 
-    "Month 5-6: Master Advanced Topics →",
-    "Month 7-8: Portfolio & Applications"
-  ],
-  "emergingTrends": [
-    "Trend 1: Detailed explanation",
-    "Trend 2: Detailed explanation",
-    "Trend 3: Detailed explanation"
-  ],
-  "salaryRange": "Entry Level: $X - $Y, Mid Level: $X - $Y, Senior: $X - $Y",
-  "jobRoles": ["Role 1", "Role 2", "Role 3", "Role 4", "Role 5"]
-}
-
-IMPORTANT: Make this roadmap COMPREHENSIVE and DETAILED. Each phase should have 3-5 steps. Include REAL learning resources.`
+  "companies": ["Company 1: What they look for"],
+  "flowchart": ["Month 1-2: Learn Fundamentals →"],
+  "emergingTrends": ["Trend 1: Explanation"],
+  "salaryRange": "Entry Level: $X - $Y",
+  "jobRoles": ["Role 1", "Role 2"]
+}`
             }
           ],
           temperature: 0.7,
@@ -138,7 +102,6 @@ IMPORTANT: Make this roadmap COMPREHENSIVE and DETAILED. Each phase should have 
 
     const rawText = response.data.choices[0].message.content;
 
-    // Parse JSON response
     let parsed;
     try {
       let cleanedText = rawText.replace(/^```json\s*|\s*```$/g, "").trim();
@@ -150,10 +113,8 @@ IMPORTANT: Make this roadmap COMPREHENSIVE and DETAILED. Each phase should have 
       return generateDetailedFallback(req, res);
     }
 
-    // Validate and enhance roadmap
     const enhancedRoadmap = enhanceRoadmapStructure(parsed, prompt);
 
-    // Generate MongoDB IDs
     const roadmapWithIds = {
       roadmap: (enhancedRoadmap.roadmap || []).map(phase => ({
         ...phase,
@@ -171,7 +132,6 @@ IMPORTANT: Make this roadmap COMPREHENSIVE and DETAILED. Each phase should have 
       jobRoles: enhancedRoadmap.jobRoles || []
     };
 
-    // Save to database
     const roadmapDoc = new Roadmap({
       ...roadmapWithIds,
       userId: req.user._id,
@@ -180,7 +140,6 @@ IMPORTANT: Make this roadmap COMPREHENSIVE and DETAILED. Each phase should have 
 
     await roadmapDoc.save();
 
-    // Create UserProgress
     const userProgress = new UserProgress({
       userId: req.user._id,
       roadmapId: roadmapDoc._id,
@@ -206,16 +165,14 @@ IMPORTANT: Make this roadmap COMPREHENSIVE and DETAILED. Each phase should have 
   }
 };
 
-// Helper to enhance and validate roadmap structure
+// ============ HELPER FUNCTIONS FOR ROADMAP ============
 const enhanceRoadmapStructure = (parsed, prompt) => {
   const field = extractFieldFromPrompt(prompt);
   
-  // Default structure if missing
   if (!parsed.roadmap || !Array.isArray(parsed.roadmap) || parsed.roadmap.length === 0) {
     parsed.roadmap = getDefaultRoadmapPhases(field);
   }
 
-  // Ensure each phase has required fields
   parsed.roadmap = parsed.roadmap.map((phase, index) => ({
     field: phase.field || field,
     title: phase.title || `Phase ${index + 1}: ${getDefaultPhaseTitle(index, field)}`,
@@ -238,7 +195,6 @@ const enhanceRoadmapStructure = (parsed, prompt) => {
     }))
   }));
 
-  // Ensure other fields exist
   parsed.companies = parsed.companies || getDefaultCompanies(field);
   parsed.flowchart = parsed.flowchart || getDefaultFlowchart(field);
   parsed.emergingTrends = parsed.emergingTrends || getDefaultTrends(field);
@@ -248,13 +204,11 @@ const enhanceRoadmapStructure = (parsed, prompt) => {
   return parsed;
 };
 
-// Extract field from prompt
 const extractFieldFromPrompt = (prompt) => {
   const match = prompt.match(/(?:for|in|about)\s+([^,.]+)/i);
   return match ? match[1].trim() : "Technology";
 };
 
-// Default phase titles based on field
 const getDefaultPhaseTitle = (index, field) => {
   const titles = [
     "Fundamentals & Core Concepts",
@@ -267,7 +221,6 @@ const getDefaultPhaseTitle = (index, field) => {
   return titles[index] || `Phase ${index + 1}`;
 };
 
-// Get default roadmap phases based on field
 const getDefaultRoadmapPhases = (field) => {
   if (field.toLowerCase().includes('full stack') || field.toLowerCase().includes('mern')) {
     return [
@@ -275,7 +228,7 @@ const getDefaultRoadmapPhases = (field) => {
         field: field,
         title: "Frontend Fundamentals",
         estimatedTime: "4-6 weeks",
-        description: "Master HTML5, CSS3, and JavaScript ES6+ - the building blocks of web development",
+        description: "Master HTML5, CSS3, and JavaScript ES6+",
         skillsToLearn: ["HTML5", "CSS3", "JavaScript ES6+", "Responsive Design", "Git Basics"],
         projects: ["Personal Portfolio Website", "Responsive Landing Page"],
         steps: []
@@ -284,8 +237,8 @@ const getDefaultRoadmapPhases = (field) => {
         field: field,
         title: "Frontend Framework - React.js",
         estimatedTime: "6-8 weeks",
-        description: "Learn React.js - components, hooks, state management, and modern React patterns",
-        skillsToLearn: ["React Components", "Hooks (useState, useEffect)", "React Router", "State Management", "API Integration"],
+        description: "Learn React.js - components, hooks, state management",
+        skillsToLearn: ["React Components", "Hooks", "React Router", "State Management", "API Integration"],
         projects: ["E-commerce Store Frontend", "Task Management App"],
         steps: []
       },
@@ -293,8 +246,8 @@ const getDefaultRoadmapPhases = (field) => {
         field: field,
         title: "Backend with Node.js & Express",
         estimatedTime: "6-8 weeks",
-        description: "Build scalable backend APIs with Node.js, Express, and MongoDB",
-        skillsToLearn: ["Node.js", "Express.js", "RESTful APIs", "MongoDB", "Authentication (JWT)"],
+        description: "Build scalable backend APIs",
+        skillsToLearn: ["Node.js", "Express.js", "RESTful APIs", "MongoDB", "JWT Authentication"],
         projects: ["Blog API", "E-commerce Backend"],
         steps: []
       },
@@ -302,15 +255,14 @@ const getDefaultRoadmapPhases = (field) => {
         field: field,
         title: "Full Stack Integration",
         estimatedTime: "4-6 weeks",
-        description: "Connect frontend with backend, implement authentication, and deploy full-stack apps",
-        skillsToLearn: ["Full Stack Integration", "Deployment", "WebSockets", "Testing", "Performance Optimization"],
+        description: "Connect frontend with backend",
+        skillsToLearn: ["Full Stack Integration", "Deployment", "WebSockets", "Testing", "Performance"],
         projects: ["Social Media Clone", "Real-time Chat Application"],
         steps: []
       }
     ];
   }
   
-  // Default generic roadmap
   return [
     {
       field: field,
@@ -333,25 +285,22 @@ const getDefaultRoadmapPhases = (field) => {
   ];
 };
 
-// Default estimated time
 const getDefaultEstimatedTime = (index) => {
   const times = ["4-6 weeks", "6-8 weeks", "8-10 weeks", "6-8 weeks", "4-6 weeks"];
   return times[index] || "4-6 weeks";
 };
 
-// Default description
 const getDefaultDescription = (index, field) => {
   const desc = [
     `Build a strong foundation in ${field} by mastering essential concepts and tools.`,
-    `Deepen your understanding of ${field} with intermediate topics and practical applications.`,
+    `Deepen your understanding of ${field} with intermediate topics.`,
     `Master advanced ${field} techniques used by industry professionals.`,
-    `Apply your skills to real-world ${field} projects and challenges.`,
-    `Prepare for ${field} job interviews and build your professional portfolio.`
+    `Apply your skills to real-world ${field} projects.`,
+    `Prepare for ${field} job interviews and build your portfolio.`
   ];
   return desc[index] || `Learn ${field} concepts and best practices.`;
 };
 
-// Default skills based on field
 const getDefaultSkills = (index, field) => {
   if (field.toLowerCase().includes('full stack') || field.toLowerCase().includes('mern')) {
     const skills = [
@@ -362,11 +311,9 @@ const getDefaultSkills = (index, field) => {
     ];
     return skills[index] || ["JavaScript", "React", "Node.js", "MongoDB", "Git"];
   }
-  
   return [`${field} Concept 1`, `${field} Concept 2`, `Tool 1`, `Tool 2`, `Best Practice`];
 };
 
-// Default projects
 const getDefaultProjects = (index, field) => {
   return [
     "Personal Portfolio Website",
@@ -377,7 +324,6 @@ const getDefaultProjects = (index, field) => {
   ].slice(0, 2);
 };
 
-// Default step title
 const getDefaultStepTitle = (index) => {
   const steps = [
     "Getting Started with Fundamentals",
@@ -389,22 +335,18 @@ const getDefaultStepTitle = (index) => {
   return steps[index] || `Step ${index + 1}`;
 };
 
-// Default step description
 const getDefaultStepDescription = (index, field) => {
-  return `Learn and practice ${field} concepts through hands-on exercises and real-world examples.`;
+  return `Learn and practice ${field} concepts through hands-on exercises.`;
 };
 
-// Default YouTube resources
 const getDefaultYoutubeResources = (field) => {
   return [
     "https://youtube.com/@freecodecamp",
     "https://youtube.com/@TraversyMedia",
-    "https://youtube.com/@WebDevSimplified",
-    "https://youtube.com/@Fireship"
+    "https://youtube.com/@WebDevSimplified"
   ];
 };
 
-// Default Coursera resources
 const getDefaultCourseraResources = (field) => {
   return [
     "https://coursera.org/learn/learning-how-to-learn",
@@ -412,7 +354,6 @@ const getDefaultCourseraResources = (field) => {
   ];
 };
 
-// Default documentation
 const getDefaultDocs = (field) => {
   return [
     "https://developer.mozilla.org",
@@ -421,7 +362,6 @@ const getDefaultDocs = (field) => {
   ];
 };
 
-// Default books
 const getDefaultBooks = (field) => {
   return [
     "Clean Code by Robert C. Martin",
@@ -430,38 +370,32 @@ const getDefaultBooks = (field) => {
   ];
 };
 
-// Default practice platforms
 const getDefaultPlatforms = (field) => {
   return [
     "https://leetcode.com",
     "https://codewars.com",
-    "https://hackerrank.com",
-    "https://frontendmentor.io"
+    "https://hackerrank.com"
   ];
 };
 
-// Default tools
 const getDefaultTools = (phaseIndex, stepIndex, field) => {
   return ["VS Code", "Git", "Chrome DevTools", "Postman", "npm/yarn"];
 };
 
-// Default job skills
 const getDefaultJobSkills = (phaseIndex, stepIndex, field) => {
   return ["Problem Solving", "Critical Thinking", "Team Collaboration", "Code Review", "Documentation"];
 };
 
-// Default companies
 const getDefaultCompanies = (field) => {
   return [
-    "Google: Looking for strong fundamentals and problem-solving skills",
-    "Microsoft: Value clean code and system design knowledge",
-    "Amazon: Focus on scalability and customer obsession",
-    "Meta: Emphasize full-stack capabilities and product sense",
-    "Startups: Require versatility and rapid learning ability"
+    "Google: Strong fundamentals and problem-solving",
+    "Microsoft: Clean code and system design",
+    "Amazon: Scalability and leadership",
+    "Meta: Full-stack capabilities",
+    "Startups: Versatility and rapid learning"
   ];
 };
 
-// Default flowchart
 const getDefaultFlowchart = (field) => {
   return [
     "Month 1-2: Learn Fundamentals → Build Foundation",
@@ -472,23 +406,19 @@ const getDefaultFlowchart = (field) => {
   ];
 };
 
-// Default trends
 const getDefaultTrends = (field) => {
   return [
-    "AI Integration: How AI is transforming development workflows",
+    "AI Integration: Transforming development workflows",
     "Serverless Architecture: Reducing infrastructure complexity",
     "Edge Computing: Bringing computation closer to users",
-    "Progressive Web Apps: Blurring line between web and mobile",
-    "Low-Code/No-Code: Democratizing application development"
+    "Progressive Web Apps: Blurring web and mobile lines"
   ];
 };
 
-// Default salary
 const getDefaultSalary = (field) => {
   return "Entry Level: $70-90k, Mid Level: $90-130k, Senior: $130-180k+";
 };
 
-// Default job roles
 const getDefaultJobRoles = (field) => {
   return [
     "Junior Developer",
@@ -500,7 +430,7 @@ const getDefaultJobRoles = (field) => {
   ];
 };
 
-// Enhanced fallback generator
+// ============ FALLBACK GENERATOR ============
 const generateDetailedFallback = async (req, res) => {
   try {
     const { prompt } = req.body;
@@ -540,7 +470,6 @@ const generateDetailedFallback = async (req, res) => {
 
     await roadmapDoc.save();
 
-    // Create UserProgress
     const userProgress = new UserProgress({
       userId: req.user._id,
       roadmapId: roadmapDoc._id,
@@ -566,6 +495,7 @@ const generateDetailedFallback = async (req, res) => {
   }
 };
 
+// ============ GET ROADMAP BY ID ============
 const getRoadmapById = async (req, res) => {
   try {
     const { id } = req.params;
@@ -579,13 +509,11 @@ const getRoadmapById = async (req, res) => {
       return res.status(404).json({ message: "No roadmap found." });
     }
 
-    // Get user progress
     const userProgress = await UserProgress.findOne({
       userId: req.user._id,
       roadmapId: id
     });
 
-    // Calculate progress
     let progressData = userProgress;
     let progressPercentage = 0;
     
@@ -612,66 +540,36 @@ const getRoadmapById = async (req, res) => {
       success: true,
       roadmap,
       userProgress: {
-        ...progressData.toObject?.(),
-        ...progressData,
+        ...(progressData.toObject ? progressData.toObject() : progressData),
         progress: progressPercentage
       }
     });
   } catch (error) {
     console.error("Error fetching roadmap:", error);
-    res.status(500).json({ 
-      message: "Error fetching roadmap", 
-      error: error.message 
-    });
-  }
-};
-
-const getallroadmap = async (req, res) => {
-  try {
-    const roadmaps = await Roadmap.find({ userId: req.user._id })
-      .sort({ createdAt: -1 })
-      .lean();
-
-    if (!roadmaps || roadmaps.length === 0) {
-      return res.json([]); // Return empty array instead of 404
-    }
-
-    // Get progress for all roadmaps
-    const roadmapIds = roadmaps.map(r => r._id);
-    const progresses = await UserProgress.find({
-      userId: req.user._id,
-      roadmapId: { $in: roadmapIds }
-    });
-
-    const roadmapsWithProgress = roadmaps.map(roadmap => {
-      const progress = progresses.find(p => 
-        p.roadmapId.toString() === roadmap._id.toString()
-      );
-      
-      const totalSteps = roadmap.roadmap?.reduce((total, phase) => 
-        total + (phase.steps?.length || 0), 0
-      ) || 0;
-      
-      const completedSteps = progress?.completedSteps?.length || 0;
-      const progressPercentage = totalSteps > 0 
-        ? Math.round((completedSteps / totalSteps) * 100) 
-        : 0;
-      
-      return {
-        ...roadmap,
-        progress: progressPercentage,
-        completedSteps: completedSteps,
-        totalSteps: totalSteps
-      };
-    });
-
-    res.json(roadmapsWithProgress);
-  } catch (error) {
-    console.error("Error fetching roadmaps:", error);
     res.status(500).json({ error: error.message });
   }
 };
 
+// ============ GET ALL ROADMAPS ============
+const getallroadmap = async (req, res) => {
+  try {
+    if (!req.user || !req.user._id) {
+      return res.status(401).json({ success: false, message: "Authentication required" });
+    }
+    
+    const roadmaps = await Roadmap.find({ userId: req.user._id })
+      .sort({ createdAt: -1 })
+      .lean();
+
+    return res.status(200).json(roadmaps || []);
+    
+  } catch (error) {
+    console.error("Error in getallroadmap:", error);
+    return res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// ============ DELETE ROADMAP ============
 const deleteroadmap = async (req, res) => {
   try {
     const { id } = req.params;
@@ -680,56 +578,34 @@ const deleteroadmap = async (req, res) => {
       return res.status(400).json({ message: "Invalid roadmap ID format" });
     }
     
-    const roadmap = await Roadmap.findOneAndDelete({ 
-      _id: id, 
-      userId: req.user._id 
-    });
+    const roadmap = await Roadmap.findOneAndDelete({ _id: id, userId: req.user._id });
     
     if (!roadmap) {
       return res.status(404).json({ message: "No roadmap found." });
     }
     
-    // Delete associated data
     await Promise.all([
       UserProgress.deleteMany({ roadmapId: id }),
       UserBadge.deleteMany({ roadmapId: id }),
       SkillAnalysis.deleteMany({ roadmapId: id })
     ]);
     
-    res.json({ 
-      success: true, 
-      message: "Roadmap and associated data deleted successfully" 
-    });
+    res.json({ success: true, message: "Roadmap deleted successfully" });
   } catch (error) {
     console.error("Error deleting roadmap:", error);
     res.status(500).json({ error: error.message });
   }
 };
 
+// ============ UPDATE PROGRESS ============
 const updateProgress = async (req, res) => {
   try {
     const { roadmapId, stepId, completed } = req.body;
     
-    // Validate input
     if (!roadmapId || !stepId || completed === undefined) {
-      return res.status(400).json({ 
-        error: "Roadmap ID, Step ID, and completion status are required" 
-      });
+      return res.status(400).json({ error: "Missing required fields" });
     }
 
-    // Validate ObjectId format
-    if (!mongoose.Types.ObjectId.isValid(roadmapId) || 
-        !mongoose.Types.ObjectId.isValid(stepId)) {
-      return res.status(400).json({ error: "Invalid ID format" });
-    }
-
-    // Find the roadmap
-    const roadmap = await Roadmap.findById(roadmapId);
-    if (!roadmap) {
-      return res.status(404).json({ message: "Roadmap not found" });
-    }
-
-    // Find or create user progress
     let userProgress = await UserProgress.findOne({
       userId: req.user._id,
       roadmapId
@@ -746,7 +622,6 @@ const updateProgress = async (req, res) => {
       });
     }
 
-    // Update step completion
     const stepIdStr = stepId.toString();
     const completedStepsSet = new Set(
       userProgress.completedSteps.map(id => id.toString())
@@ -762,134 +637,45 @@ const updateProgress = async (req, res) => {
       id => new mongoose.Types.ObjectId(id)
     );
 
-    // Update daily progress
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    
-    let dailyEntry = userProgress.dailyProgress.find(entry => {
-      if (!entry?.date) return false;
-      const entryDate = new Date(entry.date);
-      entryDate.setHours(0, 0, 0, 0);
-      return entryDate.getTime() === today.getTime();
-    });
-
-    if (dailyEntry) {
-      dailyEntry.count = Math.max(0, dailyEntry.count + (completed ? 1 : -1));
-    } else if (completed) {
-      userProgress.dailyProgress.push({ 
-        date: today, 
-        count: 1 
-      });
-    }
-
-    // Update phase completion
-    const completedPhases = [];
-    if (roadmap.roadmap && Array.isArray(roadmap.roadmap)) {
-      roadmap.roadmap.forEach(phase => {
-        if (phase.steps && Array.isArray(phase.steps)) {
-          const phaseStepIds = phase.steps
-            .map(step => step._id?.toString())
-            .filter(Boolean);
-          
-          const completedPhaseSteps = phaseStepIds.filter(stepId => 
-            userProgress.completedSteps.some(id => id.toString() === stepId)
-          );
-          
-          if (completedPhaseSteps.length === phaseStepIds.length && phaseStepIds.length > 0) {
-            completedPhases.push(phase._id || phase.title);
-          }
-        }
-      });
-    }
-    
-    userProgress.completedPhases = completedPhases;
     userProgress.lastUpdated = new Date();
-
     await userProgress.save();
 
-    // Calculate progress
-    const totalSteps = roadmap.roadmap.reduce((total, phase) => 
-      total + (phase.steps?.length || 0), 0
-    );
-    const progressPercentage = totalSteps > 0 
-      ? Math.round((userProgress.completedSteps.length / totalSteps) * 100) 
-      : 0;
-
-    // Check for badges
-    try {
-      await checkForBadges(req.user._id, roadmapId, userProgress);
-    } catch (badgeError) {
-      console.error("⚠️ Error checking badges:", badgeError.message);
-    }
-
-    res.json({ 
-      success: true,
-      message: "Progress updated successfully", 
-      userProgress: {
-        ...userProgress.toObject(),
-        progress: progressPercentage
-      },
-      progressPercentage
-    });
-
+    res.json({ success: true, message: "Progress updated" });
   } catch (error) {
-    console.error("❌ Error in updateProgress:", error);
-    res.status(500).json({ 
-      error: error.message,
-      details: "Failed to update progress. Please try again." 
-    });
-  }
-};
-
-const getProgress = async (req, res) => {
-  try {
-    const { roadmapId } = req.params;
-    
-    if (!mongoose.Types.ObjectId.isValid(roadmapId)) {
-      return res.status(400).json({ error: "Invalid roadmap ID format" });
-    }
-    
-    const userProgress = await UserProgress.findOne({
-      userId: req.user._id,
-      roadmapId
-    });
-
-    if (!userProgress) {
-      return res.json({
-        dailyProgress: [],
-        completedSteps: [],
-        completedPhases: [],
-        progress: 0
-      });
-    }
-
-    res.json(userProgress);
-  } catch (error) {
-    console.error("Error fetching progress:", error);
+    console.error("Error updating progress:", error);
     res.status(500).json({ error: error.message });
   }
 };
 
-const getBadges = async (req, res) => {
+// ============ GET PROGRESS ============
+const getProgress = async (req, res) => {
   try {
     const { roadmapId } = req.params;
-    
-    // Get all available badges
+    const userProgress = await UserProgress.findOne({
+      userId: req.user._id,
+      roadmapId
+    });
+    res.json(userProgress || { dailyProgress: [], completedSteps: [], completedPhases: [], progress: 0 });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+// ============ BADGES ============
+const getBadges = async (req, res) => {
+  try {
     let allBadges = await Badge.find().lean();
     
-    // If no badges in database, initialize them
     if (allBadges.length === 0) {
       await initializeBadges();
       allBadges = await Badge.find().lean();
     }
     
-    // Get user's earned badges for this roadmap
     const userBadges = await UserBadge.find({
       userId: req.user._id,
-      roadmapId
+      roadmapId: req.params.roadmapId
     }).populate('badgeId').lean();
 
-    // Create response with all badges, marking which ones are earned
     const badgesWithStatus = allBadges.map(badge => {
       const earnedBadge = userBadges.find(ub => 
         ub.badgeId && ub.badgeId._id.toString() === badge._id.toString()
@@ -902,195 +688,75 @@ const getBadges = async (req, res) => {
         icon: badge.icon,
         criteria: badge.criteria,
         earned: !!earnedBadge,
-        earnedAt: earnedBadge?.createdAt || null,
-        progress: calculateBadgeProgress(badge, req.user._id, roadmapId)
+        earnedAt: earnedBadge?.createdAt || null
       };
     });
 
     res.json(badgesWithStatus);
   } catch (error) {
-    console.error("Error fetching badges:", error);
-    res.status(500).json({ error: error.message });
+    res.json([]);
   }
 };
 
-// Helper function to calculate badge progress
-async function calculateBadgeProgress(badge, userId, roadmapId) {
-  try {
-    const userProgress = await UserProgress.findOne({ userId, roadmapId });
-
-    if (!userProgress) {
-      return { current: 0, target: badge.criteria.threshold, percentage: 0 };
-    }
-
-    let currentValue = 0;
-    
-    switch (badge.criteria.type) {
-      case 'steps':
-        currentValue = userProgress.completedSteps.length;
-        break;
-      case 'days':
-        const uniqueDays = new Set(
-          userProgress.dailyProgress.map(d => new Date(d.date).toDateString())
-        ).size;
-        currentValue = uniqueDays;
-        break;
-      case 'phases':
-        currentValue = userProgress.completedPhases.length;
-        break;
-      default:
-        currentValue = 0;
-    }
-
-    const percentage = Math.min(
-      100,
-      Math.round((currentValue / badge.criteria.threshold) * 100)
-    );
-
-    return {
-      current: currentValue,
-      target: badge.criteria.threshold,
-      percentage: percentage
-    };
-  } catch (error) {
-    console.error("Error calculating badge progress:", error);
-    return { current: 0, target: badge.criteria.threshold, percentage: 0 };
-  }
-}
-
-// Check for badges
-async function checkForBadges(userId, roadmapId, userProgress) {
-  try {
-    const badges = await Badge.find().lean();
-    const earnedBadges = await UserBadge.find({ 
-      userId, 
-      roadmapId 
-    }).lean();
-    
-    const earnedBadgeIds = new Set(
-      earnedBadges.map(eb => eb.badgeId?.toString()).filter(Boolean)
-    );
-
-    let newBadgesEarned = [];
-
-    for (const badge of badges) {
-      if (earnedBadgeIds.has(badge._id.toString())) {
-        continue;
-      }
-
-      let earned = false;
-      let currentValue = 0;
-      
-      switch (badge.criteria.type) {
-        case 'steps':
-          currentValue = userProgress.completedSteps.length;
-          earned = currentValue >= badge.criteria.threshold;
-          break;
-        case 'days':
-          const uniqueDays = new Set(
-            userProgress.dailyProgress.map(d => new Date(d.date).toDateString())
-          ).size;
-          currentValue = uniqueDays;
-          earned = currentValue >= badge.criteria.threshold;
-          break;
-        case 'phases':
-          currentValue = userProgress.completedPhases.length;
-          earned = currentValue >= badge.criteria.threshold;
-          break;
-      }
-
-      if (earned) {
-        // console.log(`🎉 User earned badge: ${badge.name}`);
-        
-        const userBadge = new UserBadge({
-          userId,
-          roadmapId,
-          badgeId: badge._id
-        });
-        
-        await userBadge.save();
-        newBadgesEarned.push(badge);
-      }
-    }
-
-    return newBadgesEarned;
-  } catch (error) {
-    console.error("❌ Error in checkForBadges:", error);
-    throw error;
-  }
-}
-
-// Initialize badges
 const initializeBadges = async () => {
   try {
     const badges = [
-      {
-        name: "First Steps",
-        description: "Complete your first learning step",
-        icon: "🚀",
-        criteria: { type: 'steps', threshold: 1 }
-      },
-      {
-        name: "Consistent Learner", 
-        description: "Learn for 3 consecutive days",
-        icon: "🔥",
-        criteria: { type: 'days', threshold: 3 }
-      },
-      {
-        name: "Halfway There",
-        description: "Complete 50% of your roadmap",
-        icon: "🎯", 
-        criteria: { type: 'steps', threshold: 10 }
-      },
-      {
-        name: "Roadmap Master",
-        description: "Complete all steps in your roadmap",
-        icon: "🏆",
-        criteria: { type: 'steps', threshold: 20 }
-      },
-      {
-        name: "Weekly Warrior",
-        description: "Complete learning activities for 7 days",
-        icon: "⚡",
-        criteria: { type: 'days', threshold: 7 }
-      },
-      {
-        name: "Phase Champion",
-        description: "Complete your first phase",
-        icon: "⭐",
-        criteria: { type: 'phases', threshold: 1 }
-      }
+      { name: "First Steps", description: "Complete your first learning step", icon: "🚀", criteria: { type: 'steps', threshold: 1 } },
+      { name: "Consistent Learner", description: "Learn for 3 consecutive days", icon: "🔥", criteria: { type: 'days', threshold: 3 } },
+      { name: "Halfway There", description: "Complete 50% of your roadmap", icon: "🎯", criteria: { type: 'steps', threshold: 10 } },
+      { name: "Roadmap Master", description: "Complete all steps", icon: "🏆", criteria: { type: 'steps', threshold: 20 } },
+      { name: "Weekly Warrior", description: "Learn for 7 days", icon: "⚡", criteria: { type: 'days', threshold: 7 } },
+      { name: "Phase Champion", description: "Complete your first phase", icon: "⭐", criteria: { type: 'phases', threshold: 1 } }
     ];
 
     for (const badgeData of badges) {
       const existingBadge = await Badge.findOne({ name: badgeData.name });
       if (!existingBadge) {
         await Badge.create(badgeData);
-        // console.log(`✅ Created badge: ${badgeData.name}`);
       }
     }
-    // console.log("🎉 All badges initialized successfully");
   } catch (error) {
-    console.error("❌ Error creating badges:", error);
+    console.error("Error creating badges:", error);
   }
 };
 
-// Fix missing progress
+async function checkForBadges(userId, roadmapId, userProgress) {
+  const badges = await Badge.find().lean();
+  const earnedBadges = await UserBadge.find({ userId, roadmapId }).lean();
+  const earnedBadgeIds = new Set(earnedBadges.map(eb => eb.badgeId?.toString()).filter(Boolean));
+
+  for (const badge of badges) {
+    if (earnedBadgeIds.has(badge._id.toString())) continue;
+
+    let earned = false;
+    switch (badge.criteria.type) {
+      case 'steps':
+        earned = userProgress.completedSteps.length >= badge.criteria.threshold;
+        break;
+      case 'days':
+        const uniqueDays = new Set(userProgress.dailyProgress.map(d => new Date(d.date).toDateString())).size;
+        earned = uniqueDays >= badge.criteria.threshold;
+        break;
+      case 'phases':
+        earned = userProgress.completedPhases.length >= badge.criteria.threshold;
+        break;
+    }
+
+    if (earned) {
+      await UserBadge.create({ userId, roadmapId, badgeId: badge._id });
+    }
+  }
+}
+
 const fixMissingProgress = async (req, res) => {
   try {
     const roadmaps = await Roadmap.find({ userId: req.user._id });
-    
     let fixedCount = 0;
-    const results = [];
     
     for (const roadmap of roadmaps) {
-      const existingProgress = await UserProgress.findOne({
-        userId: req.user._id,
-        roadmapId: roadmap._id
-      });
-      
+      const existingProgress = await UserProgress.findOne({ userId: req.user._id, roadmapId: roadmap._id });
       if (!existingProgress) {
-        const newProgress = new UserProgress({
+        await UserProgress.create({
           userId: req.user._id,
           roadmapId: roadmap._id,
           dailyProgress: [],
@@ -1098,204 +764,17 @@ const fixMissingProgress = async (req, res) => {
           completedPhases: [],
           lastUpdated: new Date()
         });
-        
-        await newProgress.save();
         fixedCount++;
-        results.push({
-          roadmapId: roadmap._id,
-          status: 'fixed',
-          progressId: newProgress._id
-        });
-      } else {
-        results.push({
-          roadmapId: roadmap._id,
-          status: 'already_exists'
-        });
       }
     }
     
-    res.json({ 
-      success: true,
-      message: `Fixed ${fixedCount} missing UserProgress documents`,
-      totalRoadmaps: roadmaps.length,
-      fixedCount,
-      results
-    });
-    
+    res.json({ success: true, message: `Fixed ${fixedCount} missing progress` });
   } catch (error) {
-    console.error("Error fixing progress:", error);
     res.status(500).json({ error: error.message });
   }
 };
 
-// AI Skill Gap Analysis with Grok
-const analyzeSkillGapsAI = async (req, res) => {
-  try {
-    // console.log("🧠 AI Skill Gap Analysis - START");
-    
-    const { roadmapId, userSkills, roadmapSkills, skillLevel, timeCommitment } = req.body;
-    
-    if (!roadmapId || !userSkills) {
-      return res.status(400).json({ 
-        error: "Roadmap ID and user skills are required" 
-      });
-    }
-
-    const userId = req.user?._id;
-    if (!userId) {
-      return res.status(401).json({ 
-        error: "User not authenticated" 
-      });
-    }
-
-    // console.log("📊 User Skills:", userSkills);
-    // console.log("📊 Roadmap Skills Count:", roadmapSkills?.length || 0);
-
-    // Local skill analysis
-    const { actualGaps, actualMatches } = analyzeSkillsLocally(userSkills, roadmapSkills);
-    
-    // console.log("📈 Analysis Results:");
-    // console.log("- User has skills:", userSkills.length);
-    // console.log("- Skills matched:", actualMatches.length);
-    // console.log("- Skills to learn:", actualGaps.length);
-
-    // Try AI analysis first
-    let analysis;
-    
-    if (actualGaps.length > 0) {
-      analysis = await generateGrokAnalysis(
-        userSkills,
-        actualMatches,
-        actualGaps,
-        skillLevel || 'beginner',
-        timeCommitment || '20'
-      );
-    }
-
-    // Fallback if AI fails
-    if (!analysis) {
-      analysis = generateLocalAnalysis(
-        userSkills,
-        actualMatches,
-        actualGaps,
-        skillLevel || 'beginner',
-        timeCommitment || '20'
-      );
-    }
-
-    // Save to database
-    try {
-      const skillAnalysis = new SkillAnalysis({
-        user: userId,
-        roadmapId,
-        userSkills,
-        skillGaps: analysis.skillGaps || [],
-        matchedSkills: analysis.matchedSkills || [],
-        analysisType: 'ai_enhanced',
-        aiRecommendations: analysis.recommendations || []
-      });
-      
-      await skillAnalysis.save();
-      // console.log("✅ Analysis saved to database");
-    } catch (saveError) {
-      // console.log("⚠️ Database save warning:", saveError.message);
-    }
-
-    res.json({
-      success: true,
-      analysis: analysis,
-      message: "Skill gap analysis completed"
-    });
-
-  } catch (error) {
-    console.error("❌ AI analysis error:", error);
-    res.status(500).json({ 
-      success: false,
-      error: "Analysis failed",
-      message: error.message 
-    });
-  }
-};
-
-// Grok API call for skill analysis
-async function generateGrokAnalysis(userSkills, matchedSkills, skillGaps, skillLevel, timeCommitment) {
-  try {
-    const matchedNames = matchedSkills.map(s => s.name || s);
-    const gapNames = skillGaps.map(s => s.name || s);
-    
-    const prompt = `
-      Analyze these specific skill gaps for a ${skillLevel} developer:
-      
-      USER'S CURRENT SKILLS: ${userSkills.join(', ')}
-      SKILLS ALREADY MASTERED: ${matchedNames.join(', ')}
-      SKILLS NEEDED TO LEARN: ${gapNames.join(', ')}
-      TIME AVAILABLE: ${timeCommitment} hours/week
-      
-      For EACH skill in "SKILLS NEEDED TO LEARN", provide:
-      1. Priority (high/medium/low) based on importance and dependencies
-      2. Specific learning resources (courses, tutorials, books)
-      3. Practical project ideas
-      4. Estimated learning time
-      
-      Return JSON ONLY with this exact structure:
-      {
-        "skillGaps": [
-          {
-            "name": "skill_name",
-            "category": "category",
-            "priority": "priority",
-            "estimatedTime": "X weeks",
-            "resources": ["resource1", "resource2"],
-            "projectIdeas": ["idea1", "idea2"]
-          }
-        ],
-        "matchedSkills": ["skill1", "skill2"],
-        "learningPath": ["Phase 1: ...", "Phase 2: ..."],
-        "readinessPercentage": 65,
-        "estimatedTimeline": "X months",
-        "recommendations": ["recommendation1", "recommendation2"]
-      }
-    `;
-
-    const response = await axios.post(
-      GROK_API_URL,
-      {
-        model: "grok-2-latest",
-        messages: [
-          {
-            role: "system",
-            content: "You are an expert career advisor. Return ONLY valid JSON, no markdown, no explanations."
-          },
-          {
-            role: "user",
-            content: prompt
-          }
-        ],
-        temperature: 0.7,
-        max_tokens: 3000
-      },
-      {
-        headers: {
-          "Authorization": `Bearer ${GROK_API_KEY}`,
-          "Content-Type": "application/json"
-        }
-      }
-    );
-
-    const rawText = response.data.choices[0].message.content;
-    // console.log("🤖 Grok AI Response received");
-    
-    // Extract JSON
-    const jsonMatch = rawText.match(/\{[\s\S]*\}/);
-    if (jsonMatch) {
-      return JSON.parse(jsonMatch[0]);
-    }
-  } catch (error) {
-    console.error("❌ Grok API error:", error.message);
-  }
-  
-  return null;
-}
+// ============ ENHANCED SKILL GAP ANALYSIS ============
 
 // Local skill analysis
 function analyzeSkillsLocally(userSkills, roadmapSkills) {
@@ -1312,7 +791,6 @@ function analyzeSkillsLocally(userSkills, roadmapSkills) {
     const skillName = (roadmapSkill.name || roadmapSkill).toLowerCase().trim();
     
     let hasSkill = false;
-    
     if (userSkillsLower.includes(skillName)) {
       hasSkill = true;
     } else {
@@ -1334,34 +812,193 @@ function analyzeSkillsLocally(userSkills, roadmapSkills) {
   return { actualMatches, actualGaps };
 }
 
-// Local analysis generator
-function generateLocalAnalysis(userSkills, matchedSkills, skillGaps, skillLevel, timeCommitment) {
-  // console.log("🔄 Generating local analysis");
+// ENHANCED Groq API call with rich data
+async function generateGroqAnalysis(userSkills, matchedSkills, skillGaps, skillLevel, timeCommitment) {
+  try {
+    const matchedNames = matchedSkills.map(s => s.name || s);
+    const gapNames = skillGaps.map(s => s.name || s);
+    
+    const prompt = `
+      Analyze these specific skill gaps for a ${skillLevel} developer:
+      
+      USER'S CURRENT SKILLS: ${userSkills.join(', ')}
+      SKILLS ALREADY MASTERED: ${matchedNames.join(', ')}
+      SKILLS NEEDED TO LEARN: ${gapNames.join(', ')}
+      TIME AVAILABLE: ${timeCommitment} hours/week
+      
+      For EACH skill in "SKILLS NEEDED TO LEARN", provide RICH data:
+      
+      1. priority (high/medium/low)
+      2. estimatedTimeHours (EXACT hours: "8 hours", "12 hours", "25 hours")
+      3. prerequisites (skills needed BEFORE this, as array)
+      4. difficultyLevel (beginner/intermediate/advanced)
+      5. resources: {
+           youtube: ["actual URL"],
+           udemy: ["actual URL"],
+           coursera: ["actual URL"],
+           docs: ["actual URL"],
+           blogs: ["actual URL"]
+         }
+      6. projectIdeas (3 specific project ideas)
+      7. interviewQuestions (3 common interview questions)
+      8. salaryRange (e.g., "$80k - $120k")
+      9. demandLevel (High/Medium/Low)
+      10. relatedSkills (other skills to learn alongside)
+      
+      Return JSON ONLY with this EXACT structure:
+      {
+        "skillGaps": [
+          {
+            "name": "skill_name",
+            "category": "frontend/backend/database/devops",
+            "priority": "high",
+            "estimatedTimeHours": "25 hours",
+            "prerequisites": ["skill1", "skill2"],
+            "difficultyLevel": "intermediate",
+            "resources": {
+              "youtube": ["https://youtube.com/..."],
+              "udemy": ["https://udemy.com/..."],
+              "coursera": ["https://coursera.org/..."],
+              "docs": ["https://docs.com/..."],
+              "blogs": ["https://blog.com/..."]
+            },
+            "projectIdeas": ["Project 1", "Project 2", "Project 3"],
+            "interviewQuestions": ["Question 1", "Question 2", "Question 3"],
+            "salaryRange": "$80k - $120k",
+            "demandLevel": "High",
+            "relatedSkills": ["skill A", "skill B"]
+          }
+        ],
+        "matchedSkills": ["skill1", "skill2"],
+        "learningPath": [
+          "Week 1-2: Master HTML (8h) + CSS (12h) [PARALLEL]",
+          "Week 3-4: JavaScript (25h)",
+          "Week 5-8: React (40h) + Projects"
+        ],
+        "readinessPercentage": 65,
+        "estimatedTimeline": "12-16 weeks",
+        "recommendations": ["Recommendation 1", "Recommendation 2"],
+        "salaryProjection": {
+          "current": 70000,
+          "potential": 120000,
+          "increase": 50000
+        },
+        "marketDemand": {
+          "highDemandSkills": ["react", "node"],
+          "advice": "Focus on React and Node for best job opportunities"
+        }
+      }
+    `;
+
+    const response = await axios.post(
+      GROQ_API_URL,
+      {
+        model: GROQ_MODEL,
+        messages: [
+          {
+            role: "system",
+            content: "You are an expert career advisor. Return ONLY valid JSON with REAL URLs. No markdown."
+          },
+          {
+            role: "user",
+            content: prompt
+          }
+        ],
+        temperature: 0.7,
+        max_tokens: 8000
+      },
+      {
+        headers: {
+          "Authorization": `Bearer ${GROQ_API_KEY}`,
+          "Content-Type": "application/json"
+        },
+        timeout: 60000
+      }
+    );
+
+    const rawText = response.data.choices[0].message.content;
+    console.log("📥 Groq analysis response received, length:", rawText?.length);
+    
+    const jsonMatch = rawText.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+      const parsed = JSON.parse(jsonMatch[0]);
+      
+      if (parsed.skillGaps) {
+        parsed.skillGaps = parsed.skillGaps.map(gap => ({
+          ...gap,
+          resources: {
+            youtube: gap.resources?.youtube || [],
+            udemy: gap.resources?.udemy || [],
+            coursera: gap.resources?.coursera || [],
+            docs: gap.resources?.docs || [],
+            blogs: gap.resources?.blogs || []
+          }
+        }));
+      }
+      
+      return parsed;
+    }
+  } catch (error) {
+    console.error("❌ Groq API error:", error.message);
+  }
   
+  return null;
+}
+
+// ENHANCED Local analysis generator with rich data
+function generateLocalAnalysis(userSkills, matchedSkills, skillGaps, skillLevel, timeCommitment) {
   const prioritizedGaps = skillGaps.map(gap => {
     const skillName = (gap.name || gap).toLowerCase();
     
     let priority = 'medium';
-    let estimatedTime = '3-4 weeks';
+    let estimatedTimeHours = '20 hours';
+    let difficultyLevel = 'beginner';
+    let salaryRange = '$70,000 - $90,000';
+    let demandLevel = 'Medium';
+    let relatedSkills = [];
+    let prerequisites = [];
     
-    if (['javascript', 'html', 'css', 'git', 'python'].includes(skillName)) {
+    if (['javascript', 'react', 'python', 'aws'].includes(skillName)) {
       priority = 'high';
-      estimatedTime = '2-3 weeks';
-    } else if (['react', 'node.js', 'express', 'mongodb', 'sql'].includes(skillName)) {
+      estimatedTimeHours = '40 hours';
+      difficultyLevel = 'intermediate';
+      salaryRange = '$90,000 - $140,000';
+      demandLevel = 'High';
+      relatedSkills = skillName === 'javascript' ? ['TypeScript', 'Node.js'] : 
+                      skillName === 'react' ? ['Next.js', 'Redux'] :
+                      skillName === 'python' ? ['Django', 'FastAPI'] : ['Docker', 'Terraform'];
+      prerequisites = skillName === 'react' ? ['JavaScript', 'HTML', 'CSS'] : [];
+    } else if (['html', 'css', 'git'].includes(skillName)) {
       priority = 'high';
-      estimatedTime = '4-6 weeks';
-    } else if (['aws', 'docker', 'kubernetes'].includes(skillName)) {
-      priority = 'medium';
-      estimatedTime = '5-8 weeks';
+      estimatedTimeHours = '12 hours';
+      difficultyLevel = 'beginner';
+      salaryRange = '$60,000 - $80,000';
+      demandLevel = 'High';
+      relatedSkills = skillName === 'html' ? ['CSS', 'JavaScript'] : 
+                      skillName === 'css' ? ['Tailwind', 'SASS'] : ['GitHub', 'CI/CD'];
+    } else if (['node', 'mongodb', 'sql'].includes(skillName)) {
+      priority = 'high';
+      estimatedTimeHours = '30 hours';
+      difficultyLevel = 'intermediate';
+      salaryRange = '$80,000 - $120,000';
+      demandLevel = 'High';
+      relatedSkills = skillName === 'node' ? ['Express', 'NestJS'] : 
+                      skillName === 'mongodb' ? ['Mongoose', 'Atlas'] : ['PostgreSQL', 'Prisma'];
     }
     
     return {
       name: gap.name || gap,
-      category: gap.category || 'general',
+      category: getSkillCategory(skillName),
       priority,
-      estimatedTime,
-      resources: getResourcesForSkill(gap.name || gap),
-      projectIdeas: getProjectIdeasForSkill(gap.name || gap, skillLevel)
+      estimatedTimeHours,
+      prerequisites,
+      difficultyLevel,
+      resources: getEnhancedResourcesForSkill(skillName),
+      projectIdeas: getProjectIdeasForSkill(skillName, skillLevel),
+      interviewQuestions: getInterviewQuestionsForSkill(skillName),
+      salaryRange,
+      demandLevel,
+      relatedSkills
     };
   }).sort((a, b) => {
     const priorityOrder = { high: 3, medium: 2, low: 1 };
@@ -1374,75 +1011,123 @@ function generateLocalAnalysis(userSkills, matchedSkills, skillGaps, skillLevel,
     : 0;
   
   const weeklyHours = parseInt(timeCommitment) || 20;
-  const totalWeeks = Math.ceil(prioritizedGaps.length * 3);
+  const totalWeeks = Math.ceil(prioritizedGaps.reduce((sum, gap) => {
+    const hours = parseInt(gap.estimatedTimeHours) || 20;
+    return sum + (hours / weeklyHours);
+  }, 0));
+  
+  const learningPath = [];
+  let currentWeek = 1;
+  
+  for (const gap of prioritizedGaps.slice(0, 4)) {
+    const weeksNeeded = Math.ceil((parseInt(gap.estimatedTimeHours) || 20) / weeklyHours);
+    learningPath.push(`Week ${currentWeek}-${currentWeek + weeksNeeded - 1}: Master ${gap.name} (${gap.priority} priority, ${gap.estimatedTimeHours})`);
+    currentWeek += weeksNeeded;
+  }
+  
+  learningPath.push(`Week ${currentWeek}-${currentWeek + 2}: Build integrated projects using all skills`);
+  learningPath.push(`Week ${currentWeek + 3}-${currentWeek + 4}: Portfolio preparation and interview practice`);
+
+  const currentSalary = 70000 + (matchedSkills.length * 5000);
+  const potentialSalary = 70000 + ((matchedSkills.length + skillGaps.length) * 5000);
+  
+  const highDemandSkills = prioritizedGaps.filter(g => g.demandLevel === 'High').map(g => g.name);
   
   return {
-    skillGaps: prioritizedGaps.slice(0, 5),
+    skillGaps: prioritizedGaps,
     matchedSkills: matchedSkills.map(s => s.name || s),
-    learningPath: [
-      `Weeks 1-2: Master ${prioritizedGaps[0]?.name || 'core concepts'}`,
-      `Weeks 3-4: Learn ${prioritizedGaps[1]?.name || 'frameworks'}`,
-      `Weeks 5-8: Build projects with ${prioritizedGaps.slice(0, 2).map(s => s.name).join(', ')}`,
-      `Weeks 9-12: Advanced topics and portfolio preparation`
-    ],
+    learningPath,
     readinessPercentage,
-    estimatedTimeline: `${totalWeeks}-${Math.ceil(totalWeeks * 1.3)} weeks`,
-    recommendations: [
-      `Focus on ${prioritizedGaps[0]?.name || 'core skills'} first (${prioritizedGaps[0]?.priority || 'high'} priority)`,
-      `Dedicate ${Math.ceil(weeklyHours * 0.6)} hours/week to hands-on practice`,
-      `Build at least 2 portfolio projects`,
-      `Join communities for ${prioritizedGaps.slice(0, 2).map(s => s.name).join(', ')}`
-    ]
+    estimatedTimeline: `${totalWeeks}-${totalWeeks + 4} weeks`,
+    recommendations: generatePersonalizedRecommendations(prioritizedGaps, matchedSkills.length, readinessPercentage),
+    salaryProjection: {
+      current: currentSalary,
+      potential: potentialSalary,
+      increase: potentialSalary - currentSalary
+    },
+    marketDemand: {
+      highDemandSkills: highDemandSkills.slice(0, 5),
+      advice: highDemandSkills.length > 0 
+        ? `Focus on ${highDemandSkills.slice(0, 3).join(', ')} for best job opportunities.`
+        : "All skills are valuable. Build a strong foundation first."
+    }
   };
 }
 
-// Get resources for skill
-function getResourcesForSkill(skillName) {
-  const skill = skillName.toLowerCase();
+// Helper functions for enhanced local analysis
+function getSkillCategory(skillName) {
+  const categories = {
+    javascript: 'frontend', react: 'frontend', vue: 'frontend', angular: 'frontend', 
+    html: 'frontend', css: 'frontend', tailwind: 'frontend',
+    node: 'backend', python: 'backend', java: 'backend', express: 'backend', django: 'backend',
+    sql: 'database', mongodb: 'database', postgresql: 'database', mysql: 'database',
+    aws: 'cloud', docker: 'devops', kubernetes: 'devops', git: 'tools'
+  };
+  return categories[skillName] || 'general';
+}
+
+function getEnhancedResourcesForSkill(skillName) {
   const resources = {
-    javascript: [
-      "MDN JavaScript Guide",
-      "JavaScript.info",
-      "FreeCodeCamp JavaScript",
-      "Eloquent JavaScript (book)"
-    ],
-    react: [
-      "React Official Docs",
-      "Scrimba React Course",
-      "Full Stack Open",
-      "React - The Complete Guide (Udemy)"
-    ],
-    python: [
-      "Python.org Tutorial",
-      "Automate the Boring Stuff",
-      "Real Python",
-      "Python Crash Course"
-    ],
-    node: [
-      "Node.js Docs",
-      "The Odin Project",
-      "Node.js Design Patterns",
-      "Express.js Guide"
-    ],
-    mongodb: [
-      "MongoDB University",
-      "Mongoose Docs",
-      "MongoDB Crash Course (YouTube)",
-      "MongoDB for Node.js Developers"
-    ]
+    javascript: {
+      youtube: ['https://youtube.com/watch?v=W6NZfCO5SIk', 'https://youtube.com/playlist?list=PLlasXeu85E9cQ32gLCvAvr9vNaUocPVUl'],
+      udemy: ['https://udemy.com/course/the-complete-javascript-course'],
+      coursera: ['https://coursera.org/learn/javascript'],
+      docs: ['https://developer.mozilla.org/en-US/docs/Web/JavaScript'],
+      blogs: ['https://javascript.info']
+    },
+    react: {
+      youtube: ['https://youtube.com/watch?v=bMknfKXIFA8', 'https://youtube.com/playlist?list=PLlasXeu85E9cQ32gLCvAvr9vNaUocPVUl'],
+      udemy: ['https://udemy.com/course/react-the-complete-guide'],
+      coursera: ['https://coursera.org/learn/react-basics'],
+      docs: ['https://react.dev/learn'],
+      blogs: ['https://dev.to/t/react']
+    },
+    node: {
+      youtube: ['https://youtube.com/watch?v=Oe421EPjeBE', 'https://youtube.com/playlist?list=PLlasXeu85E9cQ32gLCvAvr9vNaUocPVUl'],
+      udemy: ['https://udemy.com/course/nodejs-the-complete-guide'],
+      coursera: ['https://coursera.org/learn/nodejs'],
+      docs: ['https://nodejs.org/en/docs/guides'],
+      blogs: ['https://dev.to/t/node']
+    },
+    html: {
+      youtube: ['https://youtube.com/watch?v=qz0aGYrrlhU', 'https://youtube.com/watch?v=UB1O30fR-EE'],
+      udemy: ['https://udemy.com/course/html5-css3-basics'],
+      coursera: ['https://coursera.org/learn/html'],
+      docs: ['https://developer.mozilla.org/en-US/docs/Web/HTML'],
+      blogs: ['https://dev.to/t/html']
+    },
+    css: {
+      youtube: ['https://youtube.com/watch?v=1Rs2ND1ryYc', 'https://youtube.com/watch?v=OXGznpKZ_sA'],
+      udemy: ['https://udemy.com/course/css-the-complete-guide'],
+      coursera: ['https://coursera.org/learn/css'],
+      docs: ['https://developer.mozilla.org/en-US/docs/Web/CSS'],
+      blogs: ['https://css-tricks.com']
+    }
   };
   
-  return resources[skill] || [
-    `${skillName} Official Documentation`,
-    `Complete ${skillName} Course on Udemy`,
-    `${skillName} Tutorial for Beginners (YouTube)`,
-    `Books on ${skillName}`
-  ];
+  const defaultResources = {
+    youtube: [`https://youtube.com/results?search_query=${encodeURIComponent(skillName)}+tutorial`],
+    udemy: [`https://udemy.com/courses/search/?q=${encodeURIComponent(skillName)}`],
+    coursera: [`https://coursera.org/search?query=${encodeURIComponent(skillName)}`],
+    docs: [`https://www.google.com/search?q=${encodeURIComponent(skillName)}+documentation`],
+    blogs: [`https://dev.to/search?q=${encodeURIComponent(skillName)}`]
+  };
+  
+  return resources[skillName] || defaultResources;
 }
 
-// Get project ideas
+function getInterviewQuestionsForSkill(skillName) {
+  const questions = {
+    javascript: ['Explain closures in JavaScript', 'What is the event loop?', 'Difference between == and ==='],
+    react: ['What is JSX?', 'Explain React hooks', 'What is virtual DOM?'],
+    node: ['What is event loop in Node.js?', 'Explain streams', 'What is middleware?'],
+    html: ['What are semantic elements?', 'Explain HTML5 features', 'What is accessibility?'],
+    css: ['What is Flexbox?', 'Explain CSS Grid', 'What are pseudo-classes?']
+  };
+  return questions[skillName] || [`What is ${skillName}?`, `How do you use ${skillName} effectively?`, `What are best practices for ${skillName}?`];
+}
+
 function getProjectIdeasForSkill(skillName, level) {
-  const skill = skillName.toLowerCase();
   const levelLower = level?.toLowerCase() || 'beginner';
   
   const projects = {
@@ -1469,20 +1154,42 @@ function getProjectIdeasForSkill(skillName, level) {
   return projects[levelLower] || projects.beginner;
 }
 
+function generatePersonalizedRecommendations(skillGaps, matchedCount, readinessScore) {
+  const recommendations = [];
+  
+  if (skillGaps.length === 0) {
+    recommendations.push("🎉 You have all required skills! Focus on building advanced portfolio projects.");
+  } else {
+    const highPriority = skillGaps.filter(g => g.priority === 'high');
+    if (highPriority.length > 0) {
+      recommendations.push(`🎯 Focus on ${highPriority[0].name} first (${highPriority[0].estimatedTimeHours} estimated) - it's critical for your career path.`);
+    }
+    
+    const parallelSkills = skillGaps.filter(g => g.name === 'html' || g.name === 'css');
+    if (parallelSkills.length === 2) {
+      recommendations.push("⚡ HTML and CSS can be learned simultaneously - save 4 hours!");
+    }
+    
+    recommendations.push(`📚 Dedicate consistent time daily for best results.`);
+    recommendations.push("💡 Build at least 2-3 portfolio projects showcasing your skills.");
+  }
+  
+  if (readinessScore < 50) {
+    recommendations.push("📖 Start with fundamentals before moving to advanced topics.");
+  } else if (readinessScore > 80) {
+    recommendations.push("🚀 You're almost ready! Focus on interview preparation and system design.");
+  }
+  
+  return recommendations;
+}
+
 // Basic skill gap scan
 const skillGapScan = async (req, res) => {
   try {
     const { roadmapId, userSkills } = req.body;
     
     if (!roadmapId || !userSkills) {
-      return res.status(400).json({ 
-        error: "Roadmap ID and user skills are required" 
-      });
-    }
-
-    const userId = req.user?._id;
-    if (!userId) {
-      return res.status(401).json({ error: "User not authenticated" });
+      return res.status(400).json({ error: "Roadmap ID and user skills are required" });
     }
 
     const roadmap = await Roadmap.findById(roadmapId);
@@ -1490,51 +1197,25 @@ const skillGapScan = async (req, res) => {
       return res.status(404).json({ error: "Roadmap not found" });
     }
 
-    // Extract skills from roadmap
     const requiredSkills = [];
     roadmap.roadmap?.forEach(phase => {
       phase.steps?.forEach(step => {
-        if (step.skillsToLearn) {
-          requiredSkills.push(...step.skillsToLearn);
-        }
-        if (step.jobReadySkills) {
-          requiredSkills.push(...step.jobReadySkills);
-        }
+        if (step.skillsToLearn) requiredSkills.push(...step.skillsToLearn);
+        if (step.jobReadySkills) requiredSkills.push(...step.jobReadySkills);
       });
     });
 
-    // Remove duplicates
     const uniqueRequiredSkills = [...new Set(requiredSkills)];
-
-    // Match skills
     const matchedSkills = uniqueRequiredSkills.filter(skill => 
-      userSkills.some(us => us.toLowerCase().includes(skill.toLowerCase()) ||
-        skill.toLowerCase().includes(us.toLowerCase()))
+      userSkills.some(us => us.toLowerCase().includes(skill.toLowerCase()) || skill.toLowerCase().includes(us.toLowerCase()))
     );
-    
-    const skillGaps = uniqueRequiredSkills.filter(skill => 
-      !matchedSkills.includes(skill)
-    );
+    const skillGaps = uniqueRequiredSkills.filter(skill => !matchedSkills.includes(skill));
 
-    // Save analysis
-    const skillAnalysis = new SkillAnalysis({
-      user: userId,
-      roadmapId,
-      userSkills,
-      skillGaps: skillGaps.map(gap => ({ name: gap })),
-      matchedSkills,
-      analysisType: 'basic'
-    });
-    
-    await skillAnalysis.save();
-    
     res.json({
       success: true,
       skillGaps: skillGaps.map(gap => ({ name: gap })),
       matchedSkills,
-      requiredSkills: uniqueRequiredSkills,
-      analysisId: skillAnalysis._id,
-      message: "Skill gap analysis completed"
+      requiredSkills: uniqueRequiredSkills
     });
     
   } catch (error) {
@@ -1543,6 +1224,101 @@ const skillGapScan = async (req, res) => {
   }
 };
 
+// ENHANCED AI Skill Gap Analysis
+const analyzeSkillGapsAI = async (req, res) => {
+  try {
+    const { roadmapId, userSkills, roadmapSkills, skillLevel, timeCommitment } = req.body;
+    
+    if (!roadmapId || !userSkills) {
+      return res.status(400).json({ error: "Roadmap ID and user skills are required" });
+    }
+
+    const { actualGaps, actualMatches } = analyzeSkillsLocally(userSkills, roadmapSkills);
+    
+    let analysis = null;
+    
+    if (actualGaps.length > 0) {
+      analysis = await generateGroqAnalysis(
+        userSkills,
+        actualMatches,
+        actualGaps,
+        skillLevel || 'beginner',
+        timeCommitment || '20'
+      );
+    }
+
+    if (!analysis) {
+      analysis = generateLocalAnalysis(
+        userSkills,
+        actualMatches,
+        actualGaps,
+        skillLevel || 'beginner',
+        timeCommitment || '20'
+      );
+    }
+
+    try {
+      const skillAnalysis = new SkillAnalysis({
+        user: req.user._id,
+        roadmapId,
+        userSkills,
+        skillGaps: analysis.skillGaps || [],
+        matchedSkills: analysis.matchedSkills || [],
+        analysisType: 'ai_enhanced',
+        aiRecommendations: analysis.recommendations || []
+      });
+      await skillAnalysis.save();
+    } catch (saveError) {
+      console.log("⚠️ Database save warning:", saveError.message);
+    }
+
+    res.json({
+      success: true,
+      analysis: analysis,
+      message: "Skill gap analysis completed"
+    });
+
+  } catch (error) {
+    console.error("❌ AI analysis error:", error);
+    res.status(500).json({ 
+      success: false,
+      error: "Analysis failed",
+      message: error.message 
+    });
+  }
+};
+
+// ============ UPDATE ROADMAP ============
+const updateRoadmap = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { roadmap, companies, flowchart } = req.body;
+    
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ error: "Invalid roadmap ID format" });
+    }
+    
+    const roadmapDoc = await Roadmap.findOne({ _id: id, userId: req.user._id });
+    
+    if (!roadmapDoc) {
+      return res.status(404).json({ error: "Roadmap not found" });
+    }
+    
+    if (roadmap) roadmapDoc.roadmap = roadmap;
+    if (companies) roadmapDoc.companies = companies;
+    if (flowchart) roadmapDoc.flowchart = flowchart;
+    
+    await roadmapDoc.save();
+    
+    res.json({ success: true, message: "Roadmap updated successfully" });
+    
+  } catch (error) {
+    console.error("Error updating roadmap:", error);
+    res.status(500).json({ error: error.message });
+  }
+};
+
+// ============ MODULE EXPORTS ============
 module.exports = {
   roadmapgenerator,
   getallroadmap,
@@ -1554,5 +1330,6 @@ module.exports = {
   skillGapScan,
   initializeBadges,
   fixMissingProgress,
-  analyzeSkillGapsAI
+  analyzeSkillGapsAI,
+  updateRoadmap
 };

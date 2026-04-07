@@ -7,7 +7,7 @@ import TempApp from './TempApp.jsx'
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
-    <App />
-    {/* <TempApp /> */}
+    {/* <App /> */}
+    <TempApp /> 
   </StrictMode>,
 )

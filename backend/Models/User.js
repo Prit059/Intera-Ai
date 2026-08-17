@@ -60,13 +60,42 @@ const userSchema = new mongoose.Schema({
       default: false
     }
   },
-  profileImageUrl: String
+  // Google OAuth fields
+  googleId: {
+    type: String,
+    sparse: true,
+    unique: true
+  },
+  profileImageUrl: {
+    type: String,
+    default: null
+  },
+  // For users who sign up with Google (no password)
+  isGoogleAuth: {
+    type: Boolean,
+    default: false
+  }
 }, {
   timestamps: true
 });
 
+// Hash password before saving (only if password is modified and not Google auth)
+userSchema.pre('save', async function(next) {
+  if (!this.isModified('password') || this.isGoogleAuth) {
+    return next();
+  }
+  try {
+    const salt = await bcrypt.genSalt(10);
+    this.password = await bcrypt.hash(this.password, salt);
+    next();
+  } catch (error) {
+    next(error);
+  }
+});
+
 // Compare password method
 userSchema.methods.comparePassword = async function(candidatePassword) {
+  if (!this.password) return false;
   return await bcrypt.compare(candidatePassword, this.password);
 };
 
